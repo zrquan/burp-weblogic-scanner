@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+compileJava.options.encoding = "UTF-8"
+
+dependencies {
+    implementation 'net.portswigger.burp.extender:burp-extender-api:2.2'
+    implementation files('libs/weblogic.jar')
+    implementation files('libs/wlthint3client.jar')
+}
+
+task fatJar(type: Jar) {
+    archivesBaseName = rootProject.name + "-all"
+    duplicatesStrategy = 'include'
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
