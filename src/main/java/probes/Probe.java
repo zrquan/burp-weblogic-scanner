@@ -15,6 +15,7 @@ public abstract class Probe {
 
     public abstract IScanIssue check(IHttpRequestResponse requestResponse);
 
+    @Deprecated
     protected String sendT3Payload(Socket s, byte[] payload) {
         String handshake = "74332031322e322e310a41533a3235350a484c3a31390a4d533a31303030303030300a0a";
 
