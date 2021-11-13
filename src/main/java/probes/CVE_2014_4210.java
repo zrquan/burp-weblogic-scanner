@@ -2,19 +2,18 @@ package probes;
 
 import burp.*;
 
-import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 public class CVE_2014_4210 extends Probe {
     private static final String NAME = "CVE-2014-4210";
     private static final String SEVERITY = "Medium";
-    private static String detail = "WebLogic UDDI module is exposed!";
+    private static final String DESC = "SSRF vulnerability in the Oracle WebLogic Server component in Oracle Fusion Middleware 10.0.2.0 and 10.3.6.0.";
 
     @Override
     public IScanIssue check(IHttpRequestResponse requestResponse) {
-        String uddiPath = "/uddiexplorer/SearchPublicRegistries.jsp";
+        String path = "/uddiexplorer/SearchPublicRegistries.jsp";
 
-        IHttpRequestResponse checkReqResp = Utilities.makeRequest(requestResponse, uddiPath);
+        IHttpRequestResponse checkReqResp = getReq(requestResponse.getHttpService(), path);
 
         if (Utilities.getStatus(checkReqResp) == 200) {
             IExtensionHelpers h = Utilities.helpers;
@@ -29,21 +28,17 @@ public class CVE_2014_4210 extends Probe {
             try {
                 TimeUnit.SECONDS.sleep(3);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                e.printStackTrace(Utilities.err);
             }
 
-            for (IBurpCollaboratorInteraction interaction : Utilities.collaborator.fetchCollaboratorInteractionsFor(pollPayload)) {
-                byte[] rawQuery = Base64.getDecoder().decode(interaction.getProperty("request").getBytes());
-                if (new String(rawQuery).contains("55rf")) {
-                    detail = detail + "<br/><br/>"
-                            + "Found SSRF Vulnerability! Receive a http query from " + interaction.getProperty("client_ip")
-                            + " at " + interaction.getProperty("time_stamp") + "<br/>"
-                            + new String(rawQuery);
-                    break;
-                }
-            }
+            String detail = Utilities.fetchInteraction(pollPayload);
 
-            return new WebLogicIssue(checkReqResp, NAME, detail, SEVERITY);
+            if (detail.length() > 0)
+                return new WebLogicIssue(
+                        checkReqResp,
+                        NAME,
+                        DESC + "<br/><br/>" + detail,
+                        SEVERITY);
         }
 
         return null;

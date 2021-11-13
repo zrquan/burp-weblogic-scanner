@@ -3,11 +3,11 @@ package burp;
 import java.net.URL;
 
 public class WebLogicIssue implements IScanIssue {
-    private IHttpService httpService;
-    private URL url;
-    private String name;
-    private String detail;
-    private String severity;
+    private final IHttpService httpService;
+    private final URL url;
+    private final String name;
+    private final String detail;
+    private final String severity;
 
     public WebLogicIssue(IHttpRequestResponse checkReqResp, String name, String detail, String severity) {
         this.httpService = checkReqResp.getHttpService();

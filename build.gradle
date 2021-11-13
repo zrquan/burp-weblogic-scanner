@@ -1,6 +1,4 @@
-plugins {
-    id 'java'
-}
+apply plugin: 'java'
 
 repositories {
     mavenCentral()
@@ -16,13 +14,13 @@ compileJava {
 }
 
 dependencies {
-    implementation 'net.portswigger.burp.extender:burp-extender-api:2.2'
-    implementation files('libs/weblogic.jar', 'libs/wlthint3client.jar')
+    implementation 'net.portswigger.burp.extender:burp-extender-api:2.3'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 task fatJar(type: Jar) {
     archivesBaseName = rootProject.name + "-all"
-    duplicatesStrategy = 'include'
+    duplicatesStrategy = 'INCLUDE'
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }

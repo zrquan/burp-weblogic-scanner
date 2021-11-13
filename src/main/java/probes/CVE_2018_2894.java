@@ -1,30 +1,26 @@
 package probes;
 
-import burp.IHttpRequestResponse;
-import burp.IScanIssue;
-import burp.Utilities;
-import burp.WebLogicIssue;
+import burp.*;
 
+// 仅探测可能存在文件上传漏洞的路径
 public class CVE_2018_2894 extends Probe {
     private static final String NAME = "CVE-2018-2894";
     private static final String SEVERITY = "High";
-    private static String detail = "WebLogic has a file upload vulnerability, but you need to upload the shell manually.";
+    private static final String DESC = "File upload vulnerability in the Oracle WebLogic Server component of Oracle Fusion Middleware (subcomponent: WLS - Web Services). Supported versions that are affected are 12.1.3.0, 12.2.1.2 and 12.2.1.3.";
 
     @Override
     public IScanIssue check(IHttpRequestResponse requestResponse) {
         String path1 = "/ws_utc/begin.do";
         String path2 = "/ws_utc/config.do";
 
-        IHttpRequestResponse beginReqResp = Utilities.makeRequest(requestResponse, path1);
-        IHttpRequestResponse configReqResp = Utilities.makeRequest(requestResponse, path2);
+        IHttpService service = requestResponse.getHttpService();
+        IHttpRequestResponse beginReqResp = getReq(service, path1);
+        IHttpRequestResponse configReqResp = getReq(service, path2);
 
         if (Utilities.getStatus(beginReqResp) == 200) {
-            detail = detail + "<br/><br/>" + Utilities.helpers.bytesToString(beginReqResp.getResponse());
-            return new WebLogicIssue(beginReqResp, NAME, detail, SEVERITY);
+            return new WebLogicIssue(beginReqResp, NAME, DESC, SEVERITY);
         } else if (Utilities.getStatus(configReqResp) == 200) {
-            detail = detail + "<br/><br/>" + Utilities.helpers.bytesToString(configReqResp.getResponse());
-            return new WebLogicIssue(configReqResp, NAME, detail, SEVERITY);
-        } else
-            return null;
+            return new WebLogicIssue(configReqResp, NAME, DESC, SEVERITY);
+        } else return null;
     }
 }

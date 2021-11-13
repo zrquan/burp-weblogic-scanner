@@ -6,12 +6,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
-public class WebLogicScanner implements ActionListener, Runnable {
+public class ActiveScanner implements ActionListener, Runnable {
     private final List<Probe> probes;
     private final List<IScanIssue> issues;
     private final IHttpRequestResponse requestResponse;
 
-    public WebLogicScanner(List<Probe> probes, List<IScanIssue> issues, IHttpRequestResponse requestResponse) {
+    public ActiveScanner(List<Probe> probes, List<IScanIssue> issues, IHttpRequestResponse requestResponse) {
         this.probes = probes;
         this.issues = issues;
         this.requestResponse = requestResponse;
@@ -25,7 +25,7 @@ public class WebLogicScanner implements ActionListener, Runnable {
 
     @Override
     public void run() {
-        Utilities.out.println("[*] WebLogic scanner working...");
+        Utilities.out.println("[*] WebLogic scanner is working...");
 
         if (!issues.isEmpty())
             issues.clear();
