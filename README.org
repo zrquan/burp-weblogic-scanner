@@ -1,0 +1,4 @@
+WebLogic 扫描插件，仅用于个人学习
+
+#+attr_org: :width 600px
+[[file:resources/dashboard.png]]
