@@ -146,4 +146,19 @@ public class Utilities {
         final Field field = getField(obj.getClass(), fieldName);
         field.set(obj, value);
     }
+
+    public static byte[] serialize(final Object obj) throws IOException {
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final ObjectOutputStream objStream = new ObjectOutputStream(out);
+        objStream.writeObject(obj);
+        objStream.flush();
+        objStream.close();
+        return out.toByteArray();
+    }
+
+    public static Object deserialize(final byte[] objBytes) throws IOException, ClassNotFoundException {
+        final ByteArrayInputStream in = new ByteArrayInputStream(objBytes);
+        final ObjectInputStream objIn = new ObjectInputStream(in);
+        return objIn.readObject();
+    }
 }

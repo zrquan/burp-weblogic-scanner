@@ -15,7 +15,13 @@ compileJava {
 
 dependencies {
     implementation 'net.portswigger.burp.extender:burp-extender-api:2.3'
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['weblogic.jar', 'wlthint3client.jar'])
+    // testImplementation 用于为单元测试添加依赖，且会继承 implementation 的依赖
+    testImplementation fileTree(dir: 'libs', include: [
+            'coherence*.jar',
+            'permit-reflect-0.3.jar',
+            'com.bea.core.repackaged.springframework.spring_1.2.0.0_2-5-3.jar'
+    ])
 }
 
 task fatJar(type: Jar) {
